@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">    <!--The content is in english-->
+<head>
+    <meta charset="UTF-8">  <!--international codic that support multible languages-->
+    <title>Firmware Uploader</title>    <!--The tab Headline-->
+    <link rel="stylesheet" href="style.css">    <!--to link file.css to this website-->
+</head>
+<body>
+    <div class="container">
+        <h1>ESP32 Firmware Uploader</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="hexFile">Choose HEX file:</label>
+            <input type="file" name="hexFile" id="hexFile" accept=".hex" required>
+
+            <label for="version">Firmware Version:</label>
+            <input type="text" name="version" id="version" placeholder="e.g. 1.0.3" required>
+
+            <button type="submit">Upload</button>
+        </form>
+
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", function(e) {
+            e.preventDefault();  // Prevent default form submission
+
+            const form = document.getElementById("uploadForm");
+            const formData = new FormData(form);
+
+            fetch("upload.php", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("responseMessage").innerText = data;
+            })
+            .catch(error => {
+                document.getElementById("responseMessage").innerText = "Error uploading file.";
+                console.error(error);
+            });
+        });
+    </script>
+</body>
+</html>
