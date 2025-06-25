@@ -1,131 +1,93 @@
 #include "STD_TYPE.h"
 #include "BIT_MATH.h"
-#include "RCC_interface.h"
 #include "GPIO_interface.h"
-#include "BOOT.h"
-#include "HEX_Sample_File.h"
-#include "NVIC_interface.h"
-#include "FLASH_interface.h"
+#include "RCC_interface.h"
+#include "DAC_interface.h"
+#include "STP_interface.h"
+#include "EXTI_interface.h"
+#include "IR_interface.h"
 #include "SYSTICK_interface.h"
-#include "HEX_PARSER.h"
-#include "UART_interface.h"
-#include "TIM2_interface.h"
-#include "TFT_interface.h"
+#include "NVIC_interface.h"
+#include "Interactive_Sounds.h"
+#include "SEGMENT_interface.h"
 #include "SPI_interface.h"
+#include "UART_interface.h"
+#include "DFPlayer_interface.h"
+#include "TFT_interface.h"
+#include "BOOT.h"
+#include "TIM2_interface.h"
+#include "Device.h"
+
 
 int main(){
 
-	u8_t Program_counter=0;
-
-	RCC_Peripheral_Enable();
-	RCC_Peripheral_CLK_Enable(PERIPH_GPIOA);
-	RCC_Peripheral_CLK_Enable(PERIPH_GPIOB);
-	RCC_Peripheral_CLK_Enable(PERIPH_GPIOC);
-	RCC_Peripheral_CLK_Enable(PERIPH_SPI1);
-	RCC_Peripheral_Enable(PERIPH_SYSCFG);
-	RCC_Peripheral_CLK_Enable(PERIPH_USART1);
-	SYSTICK_peripheral_init();
-	UART_Call_Back_Function_USART1(Call_Back_Func);
-	UART1_Peripheral_init();
-	SPI_Master_init();
-	GPIO_Set_Mode(PORTA, PIN5, ALT_FUNCTION);
-	GPIO_Set_Mode(PORTA, PIN7, ALT_FUNCTION);
-	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN5, AF5);
-	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN7, AF5);
-	TFT_init();
-	TFT_FillDisplay(TFT_BLACK);
-	GPIO_Set_Mode(PORTA, PIN9, ALT_FUNCTION);
-	GPIO_Set_Mode(PORTA, PIN10, ALT_FUNCTION);
-	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN9, AF7);
-	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN10, AF7);
-
-	GPIO_Set_Mode(PORTA,PIN8,INPUT);
-	GPIO_Set_Mode(PORTA,PIN11,INPUT);
-	GPIO_Set_Input_Type(PORTA,PIN8,PULL_UP);
-	GPIO_Set_Input_Type(PORTA,PIN11,PULL_UP);
-
-	GPIO_Set_Mode(PORTC,PIN15,OUTPUT);
-	GPIO_Set_Output_Type(PORTC,PIN15,PUSH_PULL);
-	GPIO_Set_Pin_Value(PORTC,PIN15,LOW);
-
-	TFT_WriteString(5, 25, "1.Bootloader", Font_7x10, TFT_BLACK ,  TFT_WHITE );
-	TFT_WriteString(5, 37, "2.Application", Font_7x10, TFT_WHITE,  TFT_BLACK);
+	DEVICE_init();
 
 	while(1)
 	{
-		u8_t Down = GPIO_Get_Pin_Value(PORTA,PIN8);
-		u8_t Ok = GPIO_Get_Pin_Value(PORTA,PIN11);
-
-		if(Down == LOW){
-
-			Program_counter = (Program_counter%2)+1;
-
-			TFT_WriteString(5, 25, "1.Bootloader", Font_7x10, (Program_counter == 1) ? TFT_BLACK : TFT_WHITE, (Program_counter == 1) ? TFT_WHITE : TFT_BLACK);
-			TFT_WriteString(5, 37, "2.Application", Font_7x10, (Program_counter == 2) ? TFT_BLACK : TFT_WHITE, (Program_counter == 2) ? TFT_WHITE : TFT_BLACK);
-		}else if(Ok == LOW){
-			if(Program_counter == 1) break;
-			else if(Program_counter == 2) BOOT_Jump_To_Sec4_Application();
+		switch(current_Page){
+		case PAGE1: DEVICE_MENU();
+		break;
+		case PAGE2: DEVICE_PLAYER();
+		break;
+		case PAGE3: DEVICE_SETUP();
+		break;
+		case PAGE4: DEVICE_SETTING();
+		break;
 		}
-		delay_ms(100);
-	}
-
-	TFT_Updating_Page(1);
-
-
-	NVIC_Interrupt_Enable(37);
-	UART1_En_RX_Interrupt();
-
-	//Erase sector 5
-	FLASH_Sector_Erase(FLASH_SECTOR5);
-
-	//Send stup signal
-	UART1_Send_Data(SETUP_SIGNAL);
-
-	while(GLB_Flag == 0)
-	{
-		if(Receive_Flag == 1)
-		{
-			BOOT_Write_To_Staging_Area();
-		}
-	}
-
-	TFT_WriteString(2,80,"Out", Font_7x10 ,TFT_WHITE,TFT_BLACK);
-
-	if (GLB_Flag == 1)
-	{
-		UART1_Dis_RX_Interrupt();
-		NVIC_Interrupt_Disable(37);
-
-		TFT_Updating_Page(0);
-		//Erase Sector 2
-		FLASH_Sector_Erase(FLASH_SECTOR4);
-		//Change to sector 4
-		BOOT_Read_From_Staging_Area();
-		//jump to main app
-		BOOT_Jump_To_Sec4_Application();
-	}
-	else if(GLB_Flag == 2)
-	{
-		TFT_Updating_Page(2);
-		UART1_Send_Data(Cancle);
-		//erase Sector 5
-		FLASH_Sector_Erase(FLASH_SECTOR5);
-		//Jump to The last App
-		BOOT_Jump_To_Sec4_Application();
-	}
-	else if(GLB_Flag == 3)
-	{
-		TFT_Updating_Page(3);
-		//erase Sector 5
-		//		FLASH_Sector_Erase(FLASH_SECTOR5);
-		//Jump to The last App
-		//		BOOT_Jump_To_Application();
-	}
-
-
-	while(1)
-	{
 
 	}
 	return 0;
 }
+
+//int main(){
+//	u8_t DATA;
+//	RCC_Peripheral_Enable();
+//	RCC_Peripheral_CLK_Enable(PERIPH_GPIOA);
+//	RCC_Peripheral_CLK_Enable(PERIPH_GPIOB);
+//	RCC_Peripheral_CLK_Enable(PERIPH_GPIOC);
+//	RCC_Peripheral_CLK_Enable(PERIPH_SYSCFG);
+//	RCC_Peripheral_CLK_Enable(PERIPH_USART1); ///////////////////////////////
+//	SYSTICK_peripheral_init();
+//	GPIO_Set_Mode(PORTA, PIN0, INPUT);
+//	GPIO_Set_Input_Type(PORTA, PIN0, PULL_UP);
+//	EXTI_Set_Interrupt_Port(EXTI_LINE_0, EXTI_PORTA);
+//	EXTI_Set_Trigger_Detection(EXTI_LINE_0, EXTI_FALLING);
+//	EXTI_Call_Back_Function_EXTI0(IR_EXTI_ISR);
+//	EXTI_Enable_Interrupt(EXTI_LINE_0);
+//	NVIC_Interrupt_Enable(6);
+//
+//	UART1_Peripheral_init(); /////////////////////////////////////////
+//
+//	GPIO_Set_Mode(PORTA, PIN9, ALT_FUNCTION);
+//	GPIO_Set_Mode(PORTA, PIN10, ALT_FUNCTION);
+//	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN9, AF7);
+//	GPIO_Set_ALT_FUNC_Mode(PORTA, PIN10, AF7);
+//
+//
+//	for(u8_t i=0; i<8; i++)
+//	{
+//		GPIO_Set_Mode(PORTB,i,OUTPUT);
+//		GPIO_Set_Output_Type(PORTB,i,PUSH_PULL);
+//		GPIO_Set_Pin_Value(PORTB,i,HIGH);
+//	}
+//
+//	while(1)
+//	{
+//		if (UART1_Available())
+//		{
+//			 DATA = UART1_Recieve_Data();
+//		}
+//		IR_value = DATA;
+//
+//		delay_ms(2000);
+//		UART1_Send_Data(255);
+//		for(u8_t i=0; i<8; i++)
+//		{
+//			GPIO_Set_Pin_Value(PORTB,i,READ_BIT(IR_value,i));
+//		}
+//
+//		UART1_Send_Data(IR_value);
+//	}
+//	return 0;
+//}
